@@ -1,46 +1,46 @@
 ---
 name: board
-description: Render the current project's implementation board as a single Markdown table. Auto-discovers the board file (internal/board.md, .claude/board.md, board.md, or docs/board.md). Takes an optional filter argument, e.g. "board traffic", "board todo", "board mine". Read-only.
+description: Render the current project's implementation board as a single Markdown table. Auto-discovers the board file (internal/board.md, .claude/board.md, board.md, or docs/board.md). Optional filter, e.g. "board presence", "board traffic", "board todo", "board parked", "board mine", or a parent ID like "board T-D". Read-only.
 disable-model-invocation: true
 ---
 
 Render this project's implementation board.
 
-Locate the board file by checking these paths **in order** and using the first that exists (use the
-Read tool — don't shell-glob): `internal/board.md`, `.claude/board.md`, `board.md`, `docs/board.md`.
+Locate the board file by checking these paths in order and using the first that exists (use Read,
+don't shell-glob): `internal/board.md`, `.claude/board.md`, `board.md`, `docs/board.md`.
 
-**If no board file exists:** tell the user none was found in this project and offer to scaffold one at
-`.claude/board.md` with this skeleton (create it only if they say yes):
+**If found:** render the board's **Legend** and its table, all columns
+(**ID | Goal | Track | Item | Priority | Owner | Manual step | Status**), in the file's row order
+(done-first, then by priority). **Wrap long cells — never truncate Item or Status.** The Item column
+uses `**Bold title** — description` (em-dash, not `<br>`, which terminal tables ignore); render the
+full title and description.
+
+**Sub-tasks:** a discovered follow-up nests under its parent as a `↳ Parent.N` row (e.g. `↳ T-D.1`);
+`·` in Goal/Track means "inherits parent"; it carries its own Priority/Owner/Status. Keep each
+sub-task **immediately under its parent** (preserve file order) and render the `↳`/`·` as-is.
+`⏸️ parked` = a follow-up deferred by choice.
+
+**If no board file exists:** say so and offer to scaffold `.claude/board.md` (create only if the user agrees):
 
 ```
 # Implementation board
 
-**Legend** — Goal: … · Track: … · Priority: 🔴 P0 · 🟠 P1 · P2 · P3 · Owner: 🤖 me · 🧑 you · 👥 both · ⚠️ = a P0/P1 item waiting on you ·
-Status: ✅ live · 🟢 done, pending push · 🟡 partial · ⚪ to-do · 🔒 deferred · ⛔ skip ·
-Item: **bold title** — then a description that wraps (`**Title** — …`)
+**Legend** — Goal: … · Track: … · Priority: 🔴 P0 · 🟠 P1 · P2 · P3 · Owner: 🤖 me · 🧑 you · 👥 both · ⚠️ = a P0/P1 item waiting on you · Status: ✅ live · 🟢 done, pending push · 🟡 in progress · ⚪ to-do · ⏸️ parked · 🔒 deferred · ⛔ skip · Sub-tasks: ↳ Parent.N rows nested under their parent (· inherits Goal/Track)
 
 | ID | Goal | Track | Item | Priority | Owner | Manual step | Status |
 |---|---|---|---|:--:|:--:|---|---|
 ```
 
-**If found:** render the board's **Legend** (if present) and its table, preserving the file's columns
-and row order (boards are typically ordered done-first, then by priority). **Wrap long cells — never
-truncate the Item or Status text.** The Item column uses the pattern `**Bold title** — description`
-(a bold title, an em-dash, then a description that wraps within the cell — `<br>` is avoided because
-terminal table renderers ignore it). Render the full title **and** description so each row explains
-itself.
-
-The argument passed to this skill (if any) filters which rows to show (case-insensitive). When the
-board uses the standard grouping columns, map:
-- **Goal (umbrella):** any value in the Goal column — e.g. `presence` / `parity` / `moat`.
-- **Track (slice):** any value in the Track column — e.g. `traffic` / `earned` / `infra` / `docs` / `feature` / `hygiene`.
-- **State:** `todo` → Status ∈ {⚪, 🟡, 🔒} · `done` → {✅, 🟢} · `blocked` → 🔒 or a manual step on the user still pending.
+The argument passed to this skill (if any) filters which rows to show (case-insensitive):
+- **Goal:** `presence` / `parity` / `moat` → that Goal.
+- **Track:** `traffic` / `earned` / `infra` / `docs` / `feature` / `hygiene` → that Track.
+- **State:** `todo` → ⚪ or 🟡 · `done` → ✅ or 🟢 · `parked` → ⏸️ · `blocked`/`deferred` → 🔒.
 - **Owner:** `mine`/`me` → 🤖 or 👥 · `yours`/`you` → 🧑 or 👥.
-- anything else → substring match over the row's text (ID / Goal / Track / Item).
+- **Parent:** a bare ID like `T-D` matches the parent **and** its sub-tasks (`T-D.1`, …) via substring.
+- anything else → substring over ID / Goal / Track / Item.
 
-If the board lacks Goal/Track columns, treat the argument purely as a substring filter. When filtered,
-name the filter on one line above the table, then print a one-line tally for the shown rows
-(e.g. _"N done · M to-do · K deferred/skip"_).
+When filtered, name the filter on one line above the table, then a one-line tally:
+_"N done · M to-do · K parked · J deferred/skip"_.
 
 Rules:
 - **Read-only.** Never modify the board file. Pull state straight from it; don't invent rows.
