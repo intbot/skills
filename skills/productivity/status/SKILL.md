@@ -7,7 +7,7 @@ disable-model-invocation: true
 Render a **condensed** status view of this project's board.
 
 Locate the board file (first of `internal/board.md`, `.claude/board.md`, `board.md`, `docs/board.md`).
-If none, say so and point the user at the `board` skill (which can scaffold one).
+If none, say so and tell the user to run `board init` (the `board` skill scaffolds and can auto-populate one).
 
 Render:
 - First line: `**Legend:** ✅🟢 done · 🟡 in progress · ⚪ to-do · ⏸️ parked · 🔒 deferred · ⛔ skip · 🔴 P0 · 🟠 P1`
