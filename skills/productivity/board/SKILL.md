@@ -16,7 +16,7 @@ Read tool — don't shell-glob): `internal/board.md`, `.claude/board.md`, `board
 # Implementation board
 
 **Legend** — Goal: … · Track: … · Pri: P0–P3 · Owner: 🤖 me · 🧑 you · 👥 both ·
-Status: ✅ live · 🟢 done, pending push · 🟡 partial · ⏳ to-do · 🔒 deferred · ⛔ skip ·
+Status: ✅ live · 🟢 done, pending push · 🟡 partial · ⚪ to-do · 🔒 deferred · ⛔ skip ·
 Item: **bold title** — then a description that wraps (`**Title** — …`)
 
 | ID | Goal | Track | Item | Pri | Owner | Manual step | Status |
@@ -34,7 +34,7 @@ The argument passed to this skill (if any) filters which rows to show (case-inse
 board uses the standard grouping columns, map:
 - **Goal (umbrella):** any value in the Goal column — e.g. `presence` / `parity` / `moat`.
 - **Track (slice):** any value in the Track column — e.g. `traffic` / `earned` / `infra` / `docs` / `feature` / `hygiene`.
-- **State:** `todo` → Status ∈ {⏳, 🟡, 🔒} · `done` → {✅, 🟢} · `blocked` → 🔒 or a manual step on the user still pending.
+- **State:** `todo` → Status ∈ {⚪, 🟡, 🔒} · `done` → {✅, 🟢} · `blocked` → 🔒 or a manual step on the user still pending.
 - **Owner:** `mine`/`me` → 🤖 or 👥 · `yours`/`you` → 🧑 or 👥.
 - anything else → substring match over the row's text (ID / Goal / Track / Item).
 

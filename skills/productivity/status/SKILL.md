@@ -11,7 +11,7 @@ Read tool): `internal/board.md`, `.claude/board.md`, `board.md`, `docs/board.md`
 so and point the user at the `board` skill (which can scaffold one).
 
 Render:
-- First line: `**Legend:** ✅ live · 🟢 done, pending push · 🟡 partial · ⏳ to-do · 🔒 deferred · ⛔ skip`
+- First line: `**Legend:** ✅ live · 🟢 done, pending push · 🟡 partial · ⚪ to-do · 🔒 deferred · ⛔ skip`
   (adapt to the statuses the board actually uses).
 - Group rows by the board's **Goal** column (or its first grouping column) into `###` sections.
 - Condensed columns only: **ID | Item | Priority | Status** — drop Goal/Track/Owner/Manual (those are
