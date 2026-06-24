@@ -15,11 +15,11 @@ Read tool — don't shell-glob): `internal/board.md`, `.claude/board.md`, `board
 ```
 # Implementation board
 
-**Legend** — Goal: … · Track: … · Pri: P0–P3 · Owner: 🤖 me · 🧑 you · 👥 both ·
+**Legend** — Goal: … · Track: … · Priority: 🔴 P0 · 🟠 P1 · P2 · P3 · Owner: 🤖 me · 🧑 you · 👥 both · ⚠️ = a P0/P1 item waiting on you ·
 Status: ✅ live · 🟢 done, pending push · 🟡 partial · ⚪ to-do · 🔒 deferred · ⛔ skip ·
 Item: **bold title** — then a description that wraps (`**Title** — …`)
 
-| ID | Goal | Track | Item | Pri | Owner | Manual step | Status |
+| ID | Goal | Track | Item | Priority | Owner | Manual step | Status |
 |---|---|---|---|:--:|:--:|---|---|
 ```
 
