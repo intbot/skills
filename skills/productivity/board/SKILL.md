@@ -1,6 +1,6 @@
 ---
 name: board
-description: Render or initialize a project's implementation board (one Markdown table — ID · Goal · Track · Item · Priority · Owner · Manual step · Status). `board` renders it; `board init [docs|root|internal|<path>]` scaffolds one and offers to auto-populate it from the project's TODO/roadmap markdown and the current conversation. Optional filter, e.g. "board traffic", "board todo", "board mine", or a parent ID. Rendering is read-only; only `init` writes.
+description: Render or initialize a project's implementation board (one Markdown table — ID · Goal · Track · Item · Priority · Owner · Manual step · Status). `board` renders it with a composable query (space = AND, `,` = OR, `!` = NOT over Goal/Track/Priority/State/Owner), plus `board next`, `board help`, `board by <column>`, and `board <column>` to list a column's distinct values. `board init [docs|root|internal|<path>]` scaffolds a board and offers to auto-populate it. Rendering is read-only; only `init` writes.
 disable-model-invocation: true
 ---
 
@@ -11,7 +11,7 @@ Render — or, with `init`, create — this project's implementation board.
 Check these paths in order, first that exists wins (use Read, don't shell-glob):
 `internal/board.md`, `.claude/board.md`, `board.md`, `docs/board.md`.
 
-## `board` (no arg) or `board <filter>` — render, READ-ONLY
+## `board [query]` — render, READ-ONLY
 
 **If a board file exists:** render its **Legend** and table, all columns
 (**ID | Goal | Track | Item | Priority | Owner | Manual step | Status**), in file order
@@ -27,17 +27,47 @@ follow-up deferred by choice.
 **If no board file exists:** say so and tell the user to run `board init` (don't scaffold here —
 that's init's job).
 
-### Filters
-The argument (if any) filters rows (case-insensitive):
-- **Goal:** matches the Goal column (e.g. `presence` / `parity` / `moat`).
-- **Track:** matches the Track column (e.g. `traffic` / `earned` / `infra` / `docs` / `feature` / `hygiene`).
-- **State:** `todo` → ⚪ or 🟡 · `done` → ✅ or 🟢 · `parked` → ⏸️ · `blocked`/`deferred` → 🔒.
-- **Owner:** `mine`/`me` → 🤖 or 👥 · `yours`/`you` → 🧑 or 👥.
-- **Parent:** a bare ID like `T-D` matches the parent **and** its sub-tasks (`T-D.1`, …) via substring.
-- anything else → substring over ID / Goal / Track / Item.
+### Reading the argument — resolve in this order
 
-When filtered, name the filter on one line above the table, then a one-line tally:
-_"N done · M to-do · K parked · J deferred/skip"_.
+1. **`help`** → print *only* this one-line cheatsheet, nothing else:
+   `board [query] · space=AND ,=OR !=NOT over goal·track·p0-p3·state·mine/yours · board <column> lists its values · board by <column> · board next · board init`
+2. **`next`** → the live priorities: rows that are **not** done/parked/deferred/skip, ordered
+   🔴 → 🟠 → P2 → P3 (then file order), capped at ~8. A "what do I do now" view.
+3. **`by <column>`** (`by goal` / `by track` / `by owner` / `by priority` / `by status`) → render every
+   non-excluded row **re-grouped** into one `###` table per distinct value of that column (instead of
+   file order), each group in priority order.
+4. **a single column name** (`goal` / `track` / `owner` / `priority` / `status`) → don't render the
+   table; print that column's **distinct values with row counts**, busiest first
+   (e.g. `Presence (33) · Parity (3) · Moat (3)`). Lets a newcomer discover this project's labels.
+5. **anything else → a query** (see grammar below) that filters which rows to show.
+6. **no argument** → the full board.
+
+### Query grammar
+
+Tokens are **space-separated and AND together**; a `,` inside a token is **OR**; a leading `!`
+**negates**. Case-insensitive. A token matches a row when it matches any of:
+
+- **Goal** — the Goal cell (e.g. `presence`).
+- **Track** — the Track cell (e.g. `traffic`, `earned`).
+- **Priority** — `p0` `p1` `p2` `p3`.
+- **State** — a literal status word (`live`, `published`, `review`, `parked`, `deferred`, `skip`, …)
+  **or** a group alias: `done` = ✅|🟢 · `todo` = ⚪ · `active`/`wip` = 🟡 · `parked` = ⏸️ ·
+  `blocked`/`deferred` = 🔒 · `skip` = ⛔.
+- **Owner** — `mine`/`me` = 🤖|👥 · `yours`/`you` = 🧑|👥.
+- **Parent** — a bare ID like `T-D` matches that row **and** its `↳ T-D.N` sub-tasks.
+- else **substring** over ID / Goal / Track / Item.
+
+Literal vs group: `!live` drops only ✅ **live**; `!done` drops everything finished (✅ and 🟢).
+
+Examples: `presence !live` · `traffic,earned !done p1` · `mine !parked` · `presence p0 !live` · `T-D`.
+
+### Output rules
+
+- **Sub-task cohesion:** if a parent row matches, include its `↳` sub-tasks even when they don't match;
+  if a sub-task matches, include its parent for context. Keep them adjacent.
+- **Filtered / `by` / `next` renders:** name the active filter on one line above the table.
+- **Always end with a tally** of the rows shown: `_N done · M to-do · K parked · J deferred/skip_`
+  (done = ✅|🟢 · to-do = ⚪|🟡 · parked = ⏸️ · deferred/skip = 🔒|⛔).
 
 ## `board init [target]` — create the board, the ONLY write path
 
@@ -81,7 +111,7 @@ Use this when there's no board yet (or the user explicitly asks to set one up).
 ```
 
 ## Rules
-- **Only `init` writes.** Rendering (`board`, `board <filter>`) never modifies the file; pull state
-  straight from it and don't invent rows.
+- **Only `init` writes.** Rendering (`board`, `board <query>`, `board next/help/by/<column>`) never
+  modifies the file; pull state straight from it and don't invent rows.
 - Project-agnostic: always operate on the board of the current working directory's project.
 - A companion `status` skill renders a condensed view of the same file.

@@ -14,7 +14,7 @@ Then invoke a skill by name in your agent (e.g. `/board`).
 
 | Skill | What it does |
 |---|---|
-| **board** | Renders a project's implementation board as a single Markdown table (ID · Goal · Track · Item · Priority · Owner · Manual step · Status), done-first then by priority. Takes an optional filter — `board traffic`, `board todo`, `board mine`, `board blocked`, or any substring. `board init` scaffolds a new board and offers to auto-populate it. |
+| **board** | Renders a project's implementation board as a single Markdown table (ID · Goal · Track · Item · Priority · Owner · Manual step · Status), done-first then by priority. Composable query — `board presence !live`, `board traffic,earned p1`, `board mine !parked`. Plus `board next`, `board by track`, `board goal` (list a column's values), `board help`. `board init` scaffolds a new board and offers to auto-populate it. |
 | **status** | A condensed view of the same board — grouped by Goal, columns trimmed to ID · Item · Priority · Status. Good for a quick "where do things stand" glance. |
 
 Rendering is read-only and project-agnostic: both skills operate on the board file of whatever project you run them in. Only `board init` writes.
@@ -47,6 +47,31 @@ The board is one Markdown table. The **Item** column uses the pattern `**Bold ti
 each row explains itself (a `<br>` line break is avoided because terminal Markdown renderers ignore it).
 A discovered follow-up nests under its parent as a `↳ Parent.N` sub-task row. The skills look for the
 board at the first path that exists: `internal/board.md` → `.claude/board.md` → `board.md` → `docs/board.md`.
+
+## Filtering & views
+
+`board` takes an optional query. Tokens are **space-separated and AND together**; a `,` inside a token
+is **OR**; a leading `!` **negates**. A token matches a row's Goal, Track, Priority (`p0`–`p3`), state,
+or owner (`mine`/`yours`) — otherwise it's a substring search.
+
+```
+board presence !live        # Goal=Presence, but not the ✅ live ones
+board traffic,earned p1      # (Traffic OR Earned) AND P1
+board mine !parked           # mine, excluding parked
+board T-D                    # a parent row and its ↳ sub-tasks
+```
+
+State words can be literal (`!live` drops only ✅ live) or a group alias (`!done` drops ✅ and 🟢).
+Beyond queries:
+
+```
+board next          # top ~8 live priorities (highest priority, not done/parked)
+board by track      # re-group the board into a section per Track
+board goal          # list the distinct values in the Goal column, with counts
+board help          # one-line grammar cheatsheet
+```
+
+Every render ends with a tally (`N done · M to-do · K parked · J deferred/skip`).
 
 ## Updating
 
