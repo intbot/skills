@@ -1,6 +1,6 @@
 ---
 name: board
-description: Render or initialize a project's implementation board (one Markdown table — ID · Goal · Track · Item · Priority · Owner · Manual step · Status). `board` renders it with a composable query (space = AND, `,` = OR, `!` = NOT over Goal/Track/Priority/State/Owner), plus `board next`, `board help`, `board by <column>`, and `board <column>` to list a column's distinct values. `board init [docs|root|internal|<path>]` scaffolds a board and offers to auto-populate it. Rendering is read-only; only `init` writes.
+description: Render or initialize a project's implementation board (one Markdown table — ID · Goal · Track · Item · Priority · Owner · Manual step · Status). `board` renders with a composable query (space=AND, `,`=OR, `!`=NOT over Goal/Track/Priority/State/Owner), plus `board next`, `board explain [query]` (detail cards with an inferred context line per item), `board by <column>`, `board <column>` (list a column's values), and `board help`. `board init [docs|root|internal|<path>]` scaffolds a board. Rendering is read-only; only `init` writes.
 disable-model-invocation: true
 ---
 
@@ -8,93 +8,85 @@ Render — or, with `init`, create — this project's implementation board.
 
 ## Locating the board
 
-Check these paths in order, first that exists wins (use Read, don't shell-glob):
-`internal/board.md`, `.claude/board.md`, `board.md`, `docs/board.md`.
+First existing of (use Read, not shell-glob): `internal/board.md`, `.claude/board.md`, `board.md`,
+`docs/board.md`. None exists → say so and tell the user to run `board init` (don't scaffold here).
 
 ## `board [query]` — render, READ-ONLY
 
-**If a board file exists:** render its **Legend** and table, all columns
-(**ID | Goal | Track | Item | Priority | Owner | Manual step | Status**), in file order
-(done-first, then by priority). **Wrap long cells — never truncate Item or Status.** The Item column
-uses `**Bold title** — description` (em-dash, not `<br>`, which terminal tables ignore); render the
-full title and description.
+Render the **Legend** + table, all columns (**ID | Goal | Track | Item | Priority | Owner | Manual
+step | Status**), file order (done-first, then priority). **Wrap long cells; never truncate Item or
+Status.** Item is `**Bold title** — description` (em-dash, not `<br>`, which terminal tables ignore).
 
-**Sub-tasks:** a follow-up nests under its parent as a `↳ Parent.N` row (e.g. `↳ T-D.1`); `·` in
-Goal/Track means "inherits parent"; it carries its own Priority/Owner/Status. Keep each sub-task
-**immediately under its parent** (preserve file order) and render `↳`/`·` as-is. `⏸️ parked` = a
-follow-up deferred by choice.
+**Sub-tasks:** a follow-up nests under its parent as `↳ Parent.N` (e.g. `↳ T-D.1`); `·` in Goal/Track
+= inherits parent; it keeps its own Priority/Owner/Status. Keep each sub-task immediately under its
+parent; render `↳`/`·` as-is. `⏸️ parked` = a follow-up deferred by choice.
 
-**If no board file exists:** say so and tell the user to run `board init` (don't scaffold here —
-that's init's job).
+### Reading the argument — resolve in order
 
-### Reading the argument — resolve in this order
-
-1. **`help`** → print *only* this one-line cheatsheet, nothing else:
-   `board [query] · space=AND ,=OR !=NOT over goal·track·p0-p3·state·mine/yours · board <column> lists its values · board by <column> · board next · board init`
-2. **`next`** → the live priorities: rows that are **not** done/parked/deferred/skip, ordered
-   🔴 → 🟠 → P2 → P3 (then file order), capped at ~8. A "what do I do now" view.
-3. **`by <column>`** (`by goal` / `by track` / `by owner` / `by priority` / `by status`) → render every
-   non-excluded row **re-grouped** into one `###` table per distinct value of that column (instead of
-   file order), each group in priority order.
-4. **a single column name** (`goal` / `track` / `owner` / `priority` / `status`) → don't render the
-   table; print that column's **distinct values with row counts**, busiest first
-   (e.g. `Presence (33) · Parity (3) · Moat (3)`). Lets a newcomer discover this project's labels.
-5. **anything else → a query** (see grammar below) that filters which rows to show.
-6. **no argument** → the full board.
+1. **`help`** → print only this line: `board [query] · space=AND ,=OR !=NOT over goal·track·p0-p3·state·mine/yours · board explain [query] · board <column> · board by <column> · board next · board init`
+2. **`next`** → live priorities (rows not done/parked/deferred/skip), ordered 🔴→🟠→P2→P3 then file order, capped ~8.
+3. **`explain [query]`** → verbose detail view (see below).
+4. **`by <column>`** (goal/track/owner/priority/status) → regroup every non-excluded row into one `###` table per distinct value, each group in priority order.
+5. **a single column name** (goal/track/owner/priority/status) → don't render the table; list that column's distinct values with row counts, busiest first (e.g. `Presence (33) · Parity (3) · Moat (3)`).
+6. **anything else → a query** (grammar below).
+7. **no argument** → the full board.
 
 ### Query grammar
 
-Tokens are **space-separated and AND together**; a `,` inside a token is **OR**; a leading `!`
-**negates**. Case-insensitive. A token matches a row when it matches any of:
+Space-separated tokens **AND**; a `,` inside a token = **OR**; a leading `!` = **NOT**.
+Case-insensitive. A token matches a row's:
 
-- **Goal** — the Goal cell (e.g. `presence`).
-- **Track** — the Track cell (e.g. `traffic`, `earned`).
-- **Priority** — `p0` `p1` `p2` `p3`.
-- **State** — a literal status word (`live`, `published`, `review`, `parked`, `deferred`, `skip`, …)
-  **or** a group alias: `done` = ✅|🟢 · `todo` = ⚪ · `active`/`wip` = 🟡 · `parked` = ⏸️ ·
-  `blocked`/`deferred` = 🔒 · `skip` = ⛔.
-- **Owner** — `mine`/`me` = 🤖|👥 · `yours`/`you` = 🧑|👥.
-- **Parent** — a bare ID like `T-D` matches that row **and** its `↳ T-D.N` sub-tasks.
+- **Goal** / **Track** (e.g. `presence`, `traffic`), or **Priority** (`p0`–`p3`).
+- **State** — a literal status word (`live`, `parked`, …) or an alias: `done`=✅|🟢 · `todo`=⚪ ·
+  `active`/`wip`=🟡 · `parked`=⏸️ · `blocked`/`deferred`=🔒 · `skip`=⛔.
+- **Owner** — `mine`/`me`=🤖|👥 · `yours`/`you`=🧑|👥.
+- **Parent** — a bare ID (`T-D`) matches that row **and** its `↳ T-D.N` sub-tasks.
 - else **substring** over ID / Goal / Track / Item.
 
-Literal vs group: `!live` drops only ✅ **live**; `!done` drops everything finished (✅ and 🟢).
+`!live` drops only ✅ live; `!done` drops everything finished (✅ and 🟢).
+Examples: `presence !live` · `traffic,earned !done p1` · `mine !parked` · `T-D`.
 
-Examples: `presence !live` · `traffic,earned !done p1` · `mine !parked` · `presence p0 !live` · `T-D`.
+### `explain [query]` — verbose detail, READ-ONLY
+
+Select the same rows a query would (`explain` alone = whole board; `explain moat` / `explain T-D` =
+that subset). Instead of a table, render **one card per item**:
+
+```
+<ID> · <Goal>/<Track> · <Priority> · <Owner> · <Status>[ · ⚠️ <Manual step>]
+<full Item title — description>
+  ↳ context: 1–2 plain-language lines on what this item actually is — inferred from the
+    codebase, docs, and conversation. End with "(inferred)". Don't invent specifics you
+    can't ground. Never write this back to the file.
+```
+
+Keep sub-tasks under their parent card. This costs more tokens by design — only on request.
 
 ### Output rules
 
-- **Sub-task cohesion:** if a parent row matches, include its `↳` sub-tasks even when they don't match;
-  if a sub-task matches, include its parent for context. Keep them adjacent.
-- **Filtered / `by` / `next` renders:** name the active filter on one line above the table.
-- **Always end with a tally** of the rows shown: `_N done · M to-do · K parked · J deferred/skip_`
-  (done = ✅|🟢 · to-do = ⚪|🟡 · parked = ⏸️ · deferred/skip = 🔒|⛔).
+- **Sub-task cohesion:** if a parent matches, include its `↳` sub-tasks (and a matched sub-task pulls
+  in its parent); keep them adjacent.
+- Filtered / `by` / `next` / `explain` renders: name the active filter on one line above.
+- **Always end with a tally:** `_N done · M to-do · K parked · J deferred/skip_`
+  (done=✅|🟢 · to-do=⚪|🟡 · parked=⏸️ · deferred/skip=🔒|⛔).
 
 ## `board init [target]` — create the board, the ONLY write path
 
-Use this when there's no board yet (or the user explicitly asks to set one up).
+Use when there's no board yet (or the user explicitly asks to set one up).
 
-1. **Resolve the target path** from the token after `init`:
-   `docs` → `docs/board.md` · `root` → `board.md` · `internal` → `internal/board.md` ·
-   `claude` or nothing → `.claude/board.md` · otherwise treat the token as a literal path.
-   If the target is under `.claude/`, note it's usually gitignored (suggest `docs/board.md` or
-   `board.md` if they want it committed).
-2. **Never clobber.** If a board already exists at *any* discovery path, show that one and stop —
-   overwrite only if the user explicitly confirms.
-3. **Gather candidate rows** from two sources:
-   - **This conversation** — work in progress, plus any bug/improvement discovered mid-task (nest the
-     latter as a `↳` sub-task under the item it came from).
-   - **Project markdown**, high-signal only — GitHub task lists (`- [ ]` → ⚪ to-do, `- [x]` → ✅ done),
-     files named `TODO*` / `ROADMAP*` / `PLAN*` / `BACKLOG*` (case-insensitive), and README/docs
-     sections titled *Roadmap / TODO / Planned / Coming soon / Next*. Use Glob/Grep; skip
-     `node_modules`, `dist`, `build`, and vendor dirs. Don't parse every `.md` in the tree.
-4. **Draft rows** with best-effort Goal/Track/Priority/Owner/Status — these are guesses the user will
-   refine. Goal/Track are free-form labels: pick simple ones that fit *this* project; don't import
-   another project's taxonomy.
-5. **Show the drafted board** with a one-line provenance caption
-   (_"Drafted from: TODO.md (N), README roadmap (M), this session (K). Review — nothing written yet."_)
-   and **ask the user to confirm or edit before writing**.
-6. **On confirm, Write the file** (the only step that writes). If no candidates were found, write the
-   starter scaffold below instead.
+1. **Target** from the token after `init`: `docs`→`docs/board.md` · `root`→`board.md` ·
+   `internal`→`internal/board.md` · `claude`/nothing→`.claude/board.md` · else a literal path.
+   If under `.claude/`, note it's usually gitignored (suggest `docs/board.md` or `board.md` to commit).
+2. **Never clobber.** If a board exists at any discovery path, show it and stop — overwrite only on
+   explicit confirmation.
+3. **Gather rows** from: this conversation (work in progress; nest a mid-task bug/improvement as a `↳`
+   sub-task), and high-signal project markdown — GitHub task lists (`- [ ]`→⚪, `- [x]`→✅),
+   `TODO*`/`ROADMAP*`/`PLAN*`/`BACKLOG*` files, and README/docs *Roadmap/TODO/Planned/Coming soon/Next*
+   sections (Glob/Grep; skip node_modules/dist/build/vendor).
+4. **Draft** best-effort Goal/Track/Priority/Owner/Status (guesses to refine); pick simple labels that
+   fit this project — don't import another project's taxonomy.
+5. **Show the draft** with a provenance caption (_"Drafted from: TODO.md (N), README roadmap (M), this
+   session (K). Nothing written yet."_) and **ask to confirm or edit before writing.**
+6. **On confirm, Write the file** (the only write step). No candidates → write the scaffold below.
 
 ### Starter scaffold (empty project)
 ```
@@ -111,7 +103,7 @@ Use this when there's no board yet (or the user explicitly asks to set one up).
 ```
 
 ## Rules
-- **Only `init` writes.** Rendering (`board`, `board <query>`, `board next/help/by/<column>`) never
-  modifies the file; pull state straight from it and don't invent rows.
-- Project-agnostic: always operate on the board of the current working directory's project.
+- **Only `init` writes.** Every render (`board`, queries, `next`/`help`/`by`/`explain`/`<column>`)
+  reads the file and never modifies it; don't invent rows.
+- Project-agnostic: always operate on the current project's board.
 - A companion `status` skill renders a condensed view of the same file.
