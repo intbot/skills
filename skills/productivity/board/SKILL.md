@@ -1,6 +1,6 @@
 ---
 name: board
-description: Render or initialize a project's implementation board (one Markdown table — ID · Goal · Track · Item · Priority · Owner · Manual step · Status). `board` renders with a composable query (space=AND, `,`=OR, `!`=NOT over Goal/Track/Priority/State/Owner), plus `board next`, `board explain [query]` (detail cards with an inferred context line per item), `board by <column>`, `board <column>` (list a column's values), and `board help`. `board init [docs|root|internal|<path>]` scaffolds a board. Rendering is read-only; only `init` writes.
+description: Render or initialize a project's implementation board (one Markdown table — ID · Goal · Track · Item · Priority · Owner · Manual step · Status). `board` renders with a composable query (space=AND, `,`=OR, `!`=NOT over Goal/Track/Priority/State/Owner), plus `board next`, `board explain [query]` (detail cards with an inferred context line per item), `board sync` (reconcile the conversation into the board), `board by <column>`, `board <column>` (list a column's values), and `board help`. `board init [docs|root|internal|<path>]` scaffolds a board. Rendering is read-only; only `init` and `sync` write.
 disable-model-invocation: true
 ---
 
@@ -23,13 +23,14 @@ parent; render `↳`/`·` as-is. `⏸️ parked` = a follow-up deferred by choic
 
 ### Reading the argument — resolve in order
 
-1. **`help`** → print only this line: `board [query] · space=AND ,=OR !=NOT over goal·track·p0-p3·state·mine/yours · board explain [query] · board <column> · board by <column> · board next · board init`
+1. **`help`** → print only this line: `board [query] · space=AND ,=OR !=NOT over goal·track·p0-p3·state·mine/yours · board explain [query] · board sync · board <column> · board by <column> · board next · board init`
 2. **`next`** → live priorities (rows not done/parked/deferred/skip), ordered 🔴→🟠→P2→P3 then file order, capped ~8.
 3. **`explain [query]`** → verbose detail view (see below).
-4. **`by <column>`** (goal/track/owner/priority/status) → regroup every non-excluded row into one `###` table per distinct value, each group in priority order.
-5. **a single column name** (goal/track/owner/priority/status) → don't render the table; list that column's distinct values with row counts, busiest first (e.g. `Presence (33) · Parity (3) · Moat (3)`).
-6. **anything else → a query** (grammar below).
-7. **no argument** → the full board.
+4. **`sync`** → reconcile this conversation into the board (writes — see below).
+5. **`by <column>`** (goal/track/owner/priority/status) → regroup every non-excluded row into one `###` table per distinct value, each group in priority order.
+6. **a single column name** (goal/track/owner/priority/status) → don't render the table; list that column's distinct values with row counts, busiest first (e.g. `Presence (33) · Parity (3) · Moat (3)`).
+7. **anything else → a query** (grammar below).
+8. **no argument** → the full board.
 
 ### Query grammar
 
@@ -61,6 +62,19 @@ that subset). Instead of a table, render **one card per item**:
 
 Keep sub-tasks under their parent card. This costs more tokens by design — only on request.
 
+### `board sync` — reconcile conversation → board, WRITES (with confirm)
+
+Update the board from what happened in this conversation:
+
+1. Scan the conversation for board-relevant changes: tasks finished, new follow-ups/bugs discovered,
+   status or scope changes.
+2. Map each to the board — flip a row's Status, add a `↳ Parent.N` sub-task under the item it came
+   from, or add a new row for genuinely new work. Ground every change in the conversation; don't invent.
+3. Show the changes as a diff (e.g. `L3.1 ⚪→🟡 · +↳ T-D.2 "…" · +ROW …`) with a one-line provenance,
+   and ask to confirm or edit.
+4. On confirm, edit the board file in place — preserve Legend, columns, sub-task nesting, and order.
+   This is the second write path after `init`.
+
 ### Output rules
 
 - **Sub-task cohesion:** if a parent matches, include its `↳` sub-tasks (and a matched sub-task pulls
@@ -69,7 +83,7 @@ Keep sub-tasks under their parent card. This costs more tokens by design — onl
 - **Always end with a tally:** `_N done · M to-do · K parked · J deferred/skip_`
   (done=✅|🟢 · to-do=⚪|🟡 · parked=⏸️ · deferred/skip=🔒|⛔).
 
-## `board init [target]` — create the board, the ONLY write path
+## `board init [target]` — create the board (a write path)
 
 Use when there's no board yet (or the user explicitly asks to set one up).
 
@@ -86,7 +100,7 @@ Use when there's no board yet (or the user explicitly asks to set one up).
    fit this project — don't import another project's taxonomy.
 5. **Show the draft** with a provenance caption (_"Drafted from: TODO.md (N), README roadmap (M), this
    session (K). Nothing written yet."_) and **ask to confirm or edit before writing.**
-6. **On confirm, Write the file** (the only write step). No candidates → write the scaffold below.
+6. **On confirm, Write the file** (writes only on confirm). No candidates → write the scaffold below.
 
 ### Starter scaffold (empty project)
 ```
@@ -103,7 +117,7 @@ Use when there's no board yet (or the user explicitly asks to set one up).
 ```
 
 ## Rules
-- **Only `init` writes.** Every render (`board`, queries, `next`/`help`/`by`/`explain`/`<column>`)
+- **Only `init` and `sync` write.** Every render (`board`, queries, `next`/`help`/`by`/`explain`/`<column>`)
   reads the file and never modifies it; don't invent rows.
 - Project-agnostic: always operate on the current project's board.
 - A companion `status` skill renders a condensed view of the same file.
