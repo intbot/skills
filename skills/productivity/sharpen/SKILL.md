@@ -6,8 +6,8 @@ description: Rewrite a rough, unclear prompt into a sharp one for an AI agent,
 disable-model-invocation: true
 ---
 
-Rewrite the user's rough prompt into a clear one for an AI agent, then confirm
-before they send it.
+Rewrite the user's rough prompt into a clear one for an AI agent, then confirm —
+and either run it here or hand back a clean block to paste elsewhere.
 
 ## Input
 
@@ -28,13 +28,15 @@ Then add one line — **"What I changed:"** — naming the main fixes.
 
 ## Confirm (always)
 
-Ask via **AskUserQuestion**, options:
+Ask via **AskUserQuestion** — the choice both approves the rewrite **and** routes
+it, so there's no second prompt:
 
-- ✅ Use this **(Recommended)**
-- ✏️ Tighten further
-- ➕ Add missing context
+- ✅ Run it here now **(Recommended)** — carry out the sharpened prompt immediately
+- 📋 Just give me the block — print it for pasting into another agent/tool
+- ✏️ Refine — tighten or add context (ask which)
 - 💬 Chat about what I meant
 
-(AskUserQuestion adds an `Other` free-text option.) Loop until they pick
-**Use this**, then print the final prompt as a clean block by itself, ready to
-paste — nothing after it.
+(AskUserQuestion adds an `Other` free-text option.) On **Run it here now**, execute
+the sharpened prompt right away — don't re-print it or ask again. On **Just give me
+the block**, print the final prompt as a clean block by itself, ready to paste. On
+**Refine** or **Chat**, iterate, then ask again.
