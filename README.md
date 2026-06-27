@@ -14,13 +14,13 @@ Then invoke a skill by name in your agent (e.g. `/board`).
 
 | Skill | What it does |
 |---|---|
-| **board** | Renders a project's implementation board as a single Markdown table (ID · Goal · Track · Item · Priority · Owner · Manual step · Status), done-first then by priority. Composable query — `board presence !live`, `board traffic,earned p1`, `board mine !parked`. Plus `board next`, `board explain [query]` (detail cards with an inferred "what this is" line per item), `board sync` (reconcile the conversation into the board), `board by track`, `board goal` (list a column's values), `board help`. `board init` scaffolds a new board and offers to auto-populate it. |
+| **board** | Renders a project's implementation board as a single Markdown table (ID · Goal · Track · Item · Priority · Owner · Manual step · Status), done-first then by priority, with a completion bar + per-Goal progress under every full render. Composable query — `board presence !live`, `board traffic,earned p1`, `board mine !parked`. Plus `board next`, `board explain [query]` (detail cards with an inferred "what this is" line per item), `board sync` (reconcile the conversation into the board), `board archive` (retire done rows to `board.archive.md`), `board by track`, `board goal` (list a column's values), `board help`. `board init` scaffolds a new board and offers to auto-populate it. |
 | **status** | A condensed view of the same board — grouped by Goal, columns trimmed to ID · Item · Priority · Status. Good for a quick "where do things stand" glance. |
 | **quiz-me** | Quizzes you about a plan, design, or topic through AskUserQuestion's selectable chips instead of freeform questions — a friendlier `/grill-me`. `quiz-me <type>` sets the answer format (`mul` multiple-choice, `tf` true/false, `scale` rate/prioritize, `mix` auto-pick); each question marks the recommended pick and adds a `💬 Chat about this` escape hatch. `--test` switches from design review to a graded knowledge quiz with scoring. Defaults to `mul`, one question at a time. |
 | **sharpen** | Rewrites a rough, unclear prompt into a sharp one for an AI agent — states the goal up front, splits multiple asks into ordered tasks, names implied context — then **one confirm both approves and routes it**: ✅ run it here now, or 📋 take the clean block to paste elsewhere (plus ✏️ refine · 💬 chat). Slash-only: `/sharpen <your rough prompt>`. |
 | **sharpen-auto** | Auto-firing companion to **sharpen** — same rewrite-and-confirm routine, but it triggers when you paste a rough prompt and ask to rewrite/clarify it, no slash needed. Install alongside `sharpen` (`-s sharpen,sharpen-auto`) for hands-free prompt-sharpening. |
 
-Rendering is read-only and project-agnostic: both skills operate on the board file of whatever project you run them in. Only `board init` and `board sync` write.
+Rendering is read-only and project-agnostic: both skills operate on the board file of whatever project you run them in. Only `board init`, `board sync`, and `board archive` write.
 
 ## Getting started
 
@@ -73,6 +73,8 @@ board by track      # re-group the board into a section per Track
 board goal          # list the distinct values in the Goal column, with counts
 board explain moat  # detail cards + an inferred "what this is" line per item (read-only, costs more tokens)
 board sync          # reconcile this conversation into the board (writes, with confirm)
+board archive       # move done rows out to board.archive.md (writes, with confirm)
+board archived      # view board.archive.md
 board help          # one-line grammar cheatsheet
 ```
 

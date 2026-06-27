@@ -1,6 +1,6 @@
 ---
 name: board
-description: Render or initialize a project's implementation board (one Markdown table — ID · Goal · Track · Item · Priority · Owner · Manual step · Status). `board` renders with a composable query (space=AND, `,`=OR, `!`=NOT over Goal/Track/Priority/State/Owner), plus `board next`, `board explain [query]` (detail cards with an inferred context line per item), `board sync` (reconcile the conversation into the board), `board by <column>`, `board <column>` (list a column's values), and `board help`. `board init [docs|root|internal|<path>]` scaffolds a board. Rendering is read-only; only `init` and `sync` write.
+description: Render or initialize a project's implementation board (one Markdown table — ID · Goal · Track · Item · Priority · Owner · Manual step · Status). `board` renders with a composable query (space=AND, `,`=OR, `!`=NOT over Goal/Track/Priority/State/Owner) plus a progress bar + per-Goal completion, and supports `board next`, `board explain [query]`, `board sync`, `board archive [query]` (retire done rows to board.archive.md), `board by <column>`, `board <column>`, `board help`. `board init [docs|root|internal|<path>]` scaffolds a board. Rendering is read-only; only `init`, `sync`, and `archive` write.
 disable-model-invocation: true
 ---
 
@@ -23,14 +23,16 @@ parent; render `↳`/`·` as-is. `⏸️ parked` = a follow-up deferred by choic
 
 ### Reading the argument — resolve in order
 
-1. **`help`** → print only this line: `board [query] · space=AND ,=OR !=NOT over goal·track·p0-p3·state·mine/yours · board explain [query] · board sync · board <column> · board by <column> · board next · board init`
+1. **`help`** → print only this line: `board [query] · space=AND ,=OR !=NOT over goal·track·p0-p3·state·mine/yours · board explain [query] · board sync · board archive · board <column> · board by <column> · board next · board init`
 2. **`next`** → live priorities (rows not done/parked/deferred/skip), ordered 🔴→🟠→P2→P3 then file order, capped ~8.
 3. **`explain [query]`** → verbose detail view (see below).
 4. **`sync`** → reconcile this conversation into the board (writes — see below).
-5. **`by <column>`** (goal/track/owner/priority/status) → regroup every non-excluded row into one `###` table per distinct value, each group in priority order.
-6. **a single column name** (goal/track/owner/priority/status) → don't render the table; list that column's distinct values with row counts, busiest first (e.g. `Presence (33) · Parity (3) · Moat (3)`).
-7. **anything else → a query** (grammar below).
-8. **no argument** → the full board.
+5. **`archive [query]`** → move done rows out to `board.archive.md` (writes — see below).
+6. **`archived`** → render `board.archive.md`, read-only, newest section first.
+7. **`by <column>`** (goal/track/owner/priority/status) → regroup every non-excluded row into one `###` table per distinct value, each group in priority order.
+8. **a single column name** (goal/track/owner/priority/status) → don't render the table; list that column's distinct values with row counts, busiest first (e.g. `Presence (33) · Parity (3) · Moat (3)`).
+9. **anything else → a query** (grammar below).
+10. **no argument** → the full board.
 
 ### Query grammar
 
@@ -73,7 +75,22 @@ Update the board from what happened in this conversation:
 3. Show the changes as a diff (e.g. `L3.1 ⚪→🟡 · +↳ T-D.2 "…" · +ROW …`) with a one-line provenance,
    and ask to confirm or edit.
 4. On confirm, edit the board file in place — preserve Legend, columns, sub-task nesting, and order.
-   This is the second write path after `init`.
+
+### `board archive [query]` — retire done rows, WRITES (with confirm)
+
+Move completed rows out of the board into `board.archive.md` (a sibling of the board file, e.g.
+`internal/board.archive.md`):
+
+1. Select **✅/🟢 done** rows matching the query (`archive` alone = all done rows; `archive moat` =
+   done Moat rows). Never select live-but-unfinished, ⚪ to-do, ⏸️ parked, or 🔒 deferred rows.
+2. Carry each selected row's done sub-tasks with it; never orphan a `↳` child, or strand a child whose
+   parent is leaving (move the parent too, or keep both).
+3. Show the rows to be moved and the destination, and ask to confirm.
+4. On confirm: **append** them to `board.archive.md` under a `## Archived <today's date, YYYY-MM-DD>`
+   heading (create the file with the board's Legend + table header if it doesn't exist), then
+   **remove** them from the board file. Preserve columns and sub-task nesting on both sides.
+
+`board archived` renders `board.archive.md` read-only, newest section first.
 
 ### Output rules
 
@@ -82,6 +99,12 @@ Update the board from what happened in this conversation:
 - Filtered / `by` / `next` / `explain` renders: name the active filter on one line above.
 - **Always end with a tally:** `_N done · M to-do · K parked · J deferred/skip_`
   (done=✅|🟢 · to-do=⚪|🟡 · parked=⏸️ · deferred/skip=🔒|⛔).
+- **Progress (full / unfiltered board and `by goal` only):** below the tally, add
+  - a 10-cell completion bar — `▓▓▓▓▓▓░░░░ 31/47 (66%) done` (filled = done ✅|🟢; denominator = all
+    rows except ⛔ skip), and
+  - per-Goal completion — `Presence 28/33 · Parity 3/3 · Moat 0/4` (done / non-skip total per Goal).
+
+  On filtered / `next` / `explain` renders, show only the plain tally (progress reflects the whole board).
 
 ## `board init [target]` — create the board (a write path)
 
@@ -117,7 +140,8 @@ Use when there's no board yet (or the user explicitly asks to set one up).
 ```
 
 ## Rules
-- **Only `init` and `sync` write.** Every render (`board`, queries, `next`/`help`/`by`/`explain`/`<column>`)
-  reads the file and never modifies it; don't invent rows.
+- **Only `init`, `sync`, and `archive` write.** Every render (`board`, queries,
+  `next`/`help`/`by`/`explain`/`archived`/`<column>`) reads the file and never modifies it; don't
+  invent rows.
 - Project-agnostic: always operate on the current project's board.
 - A companion `status` skill renders a condensed view of the same file.
