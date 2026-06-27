@@ -1,0 +1,4 @@
+# Private working area — a directory junction to ../private/skills (see scripts/setup-private.sh
+# in the sibling ng2-pdfjs-viewer repo). Anything under internal/ is stored in, and committed
+# from, that private repo — never this public one. Gitignored here as a backstop.
+internal/
