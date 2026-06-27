@@ -14,7 +14,7 @@ Then invoke a skill by name in your agent (e.g. `/board`).
 
 | Skill | What it does |
 |---|---|
-| **board** | Renders a project's implementation board as a single Markdown table (ID · Goal · Track · Item · Priority · Owner · Manual step · Status), done-first then by priority, with a completion bar + per-Goal progress under every full render. Composable query — `board presence !live`, `board traffic,earned p1`, `board mine !parked`. Plus `board next`, `board explain [query]` (detail cards with an inferred "what this is" line per item), `board sync` (reconcile the conversation into the board), `board archive` (retire done rows to `board.archive.md`), `board by track`, `board goal` (list a column's values), `board help`. `board init` scaffolds a new board and offers to auto-populate it. |
+| **board** | Renders a project's implementation board as a single Markdown table (ID · Goal · Track · Item · Priority · Owner · Manual step · Status), done-first then by priority, with a completion bar + per-Goal progress under every full render. Composable query — `board presence !live`, `board traffic,earned p1`, `board mine !parked`. Plus `board next`, `board explain [query]` (detail cards with an inferred "what this is" line per item), `board sync` (reconcile the conversation into the board), `board archive` (retire done rows to `board.archive.md`), `board by track`, `board goal` (list a column's values), `board help`. **Named boards:** `board @<name>` runs any command against a separate `board.<name>.md`; `board boards` lists them. `board init` scaffolds a new board and offers to auto-populate it. |
 | **status** | A condensed view of the same board — grouped by Goal, columns trimmed to ID · Item · Priority · Status. Good for a quick "where do things stand" glance. |
 | **quiz-me** | Quizzes you about a plan, design, or topic through AskUserQuestion's selectable chips instead of freeform questions — a friendlier `/grill-me`. `quiz-me <type>` sets the answer format (`mul` multiple-choice, `tf` true/false, `scale` rate/prioritize, `mix` auto-pick); each question marks the recommended pick and adds a `💬 Chat about this` escape hatch. `--test` switches from design review to a graded knowledge quiz with scoring. Defaults to `mul`, one question at a time. |
 | **sharpen** | Rewrites a rough, unclear prompt into a sharp one for an AI agent — states the goal up front, splits multiple asks into ordered tasks, names implied context — then **one confirm both approves and routes it**: ✅ run it here now, or 📋 take the clean block to paste elsewhere (plus ✏️ refine · 💬 chat). Slash-only: `/sharpen <your rough prompt>`. |
@@ -62,6 +62,23 @@ To get the grid back: widen the pane (collapse side panels that eat horizontal s
 — its 4-column view (ID · Item · Priority · Status) fits most widths. `board next` and queries also help
 by showing fewer rows.
 
+## Named boards
+
+By default everything operates on one board. For a **genuinely separate domain** — where a blended
+tally would be meaningless — add a named board: a `@<name>` token targets `board.<name>.md` in the
+board's directory (e.g. `internal/board.eb1a.md`), with its own archive `board.<name>.archive.md`.
+Everything after `@<name>` runs as normal against that file; each named board keeps its own tally and
+progress, never co-mingled.
+
+```
+board boards            # list the default + every board.*.md, each with its progress
+board init @eb1a        # scaffold a new internal/board.eb1a.md
+board @eb1a             # render it
+board @eb1a next        # …or any command/query against it
+```
+
+For mere *facets* of one effort, don't split — use a Track + a query (`board <track>`, `board by track`).
+
 ## Filtering & views
 
 `board` takes an optional query. Tokens are **space-separated and AND together**; a `,` inside a token
@@ -86,6 +103,8 @@ board explain moat  # detail cards + an inferred "what this is" line per item (r
 board sync          # reconcile this conversation into the board (writes, with confirm)
 board archive       # move done rows out to board.archive.md (writes, with confirm)
 board archived      # view board.archive.md
+board @eb1a next    # run any command/query against a separate named board (board.eb1a.md)
+board boards        # list the default board + every board.*.md, each with its progress
 board help          # one-line grammar cheatsheet
 ```
 
