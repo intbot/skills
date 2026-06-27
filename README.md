@@ -43,6 +43,8 @@ Pick where the board lives at init time — the skill uses the first path that e
 | `init internal` | `internal/board.md` | private/gitignored working area |
 | `init docs` / `init root` | `docs/board.md` / `board.md` | you want it committed |
 | `init` (default) | `.claude/board.md` | local-only (usually gitignored) |
+| `init @<name>` | `board.<name>.md` (a named board) | a genuinely separate domain (own tally/progress) |
+| `init <path>` | that literal path | a custom location |
 
 ## The board file
 
@@ -92,8 +94,10 @@ board mine !parked           # mine, excluding parked
 board T-D                    # a parent row and its ↳ sub-tasks
 ```
 
-State words can be literal (`!live` drops only ✅ live) or a group alias (`!done` drops ✅ and 🟢).
-Beyond queries:
+State words can be literal (`!live` drops only ✅ live) or a group alias: `done`=✅🟢 · `todo`=⚪ ·
+`active`/`wip`=🟡 · `parked`=⏸️ · `blocked`/`deferred`=🔒 · `skip`=⛔ (so `!done` drops ✅ and 🟢).
+Owners are `mine`/`me` and `yours`/`you`; a bare ID like `T-D` matches that row **and** its `↳`
+sub-tasks. Beyond queries:
 
 ```
 board next          # top ~8 live priorities (highest priority, not done/parked)
@@ -108,11 +112,13 @@ board boards        # list the default board + every board.*.md, each with its p
 board help          # one-line grammar cheatsheet
 ```
 
-Every render ends with a tally (`N done · M to-do · K parked · J deferred/skip`).
+Every render ends with a tally (`N done · M to-do · K parked · J deferred/skip`); a full, unfiltered
+board also shows a completion bar (`▓▓▓▓▓▓░░░░ 31/47 (66%) done`) and per-Goal progress
+(`Presence 28/33 · Parity 3/3 · Moat 0/4`).
 
 ## Keeping the board current
 
-`board`/`status` only render; `board init` and `board sync` are the only writes. Two ways to keep the
+`board`/`status` only render; `board init`, `board sync`, and `board archive` are the only writes. Two ways to keep the
 board live as you work:
 
 - **On demand** — run `board sync` at a stopping point. It reconciles the conversation against the
