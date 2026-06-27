@@ -51,6 +51,17 @@ each row explains itself (a `<br>` line break is avoided because terminal Markdo
 A discovered follow-up nests under its parent as a `↳ Parent.N` sub-task row. The skills look for the
 board at the first path that exists: `internal/board.md` → `.claude/board.md` → `board.md` → `docs/board.md`.
 
+## Rendering in a narrow terminal
+
+The full `board` is a wide, 8-column table. When the terminal — or an editor pane like Zed's — is too
+narrow to fit it, the Markdown renderer **stacks each row into `Header: value` records** rather than
+truncating, so you see a vertical list instead of a grid. That's a display fallback, not a problem with
+the board file.
+
+To get the grid back: widen the pane (collapse side panels that eat horizontal space), or use **`status`**
+— its 4-column view (ID · Item · Priority · Status) fits most widths. `board next` and queries also help
+by showing fewer rows.
+
 ## Filtering & views
 
 `board` takes an optional query. Tokens are **space-separated and AND together**; a `,` inside a token
